@@ -1,0 +1,42 @@
+import win32serviceutil
+import win32service
+import servicemanager
+import socket
+import json
+from your_module import PythonClass  # Replace 'your_module' with the actual name of the module
+
+class YourPythonService(win32serviceutil.ServiceFramework):
+    _svc_name_ = "YourPythonService"
+    _svc_display_name_ = "Your Python Service"
+
+    def __init__(self, args):
+        win32serviceutil.ServiceFramework.__init__(self, args)
+        self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
+        socket.setdefaulttimeout(60)
+        self.is_alive = True
+        self.python_class = PythonClass()  # Initialize your Python class here
+
+    def SvcStop(self):
+        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+        win32event.SetEvent(self.hWaitStop)
+        self.is_alive = False
+
+    def SvcDoRun(self):
+        servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, servicemanager.PYS_SERVICE_STARTED, (self._svc_name_, ''))
+        self.main()
+
+    def main(self):
+        while self.is_alive:
+            # Put your service logic here
+            json_data = """{"QID3_TEXT": "Transaction ID XYZ789 needs attention. You can reach me at 555-123-4567.", 'QID57_TEXT': "There's a problem with my mobile banking app. My account number is 5555555555. Call me at 123-456-7890.", 'QID23_TEXT': 'I am having an issue with my bank account. My account number is 1234567890. Please help.', 'QID40_TEXT': 'I tried to contact customer service at 987-654-3210. My account number is 987654321.'}"""
+            queue_order = "QID3_TEXT QID57_TEXT QID23_TEXT QID40_TEXT"
+            result = self.python_class.process_json(json_data, queue_order)
+            # Do something with the result, e.g., write it to a log
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        servicemanager.Initialize()
+        servicemanager.PrepareToHostSingle(YourPythonService)
+        servicemanager.StartServiceCtrlDispatcher()
+    else:
+        win32serviceutil.HandleCommandLine(YourPythonService)
